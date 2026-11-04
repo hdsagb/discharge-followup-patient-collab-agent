@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>出院随访与患者协作 · 现状与 AI 增强流程对比</title>
+<style>
+  :root{
+    --ink:#14202b;
+    --ink-2:#41525f;
+    --ink-3:#75858f;
+    --line:#dfe5e9;
+    --bg:#f4f6f7;
+    --card:#ffffff;
+    --trigger:#33414d;
+    --manual:#c9822a;
+    --manual-bg:#fdf3e4;
+    --exception:#c0392b;
+    --exception-bg:#fdeeec;
+    --ai:#0f7c72;
+    --ai-bg:#e8f5f3;
+    --rule:#2f6f9e;
+    --rule-bg:#ecf3f9;
+    --human:#5b4aa6;
+    --human-bg:#f0edf9;
+    --audit:#7a4c86;
+    --audit-bg:#f5ecf7;
+    --data:#4b6577;
+    --data-bg:#eef2f5;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:"PingFang SC","Microsoft YaHei","Hiragino Sans GB",system-ui,-apple-system,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .page{max-width:1480px;margin:0 auto;padding:34px 26px 56px;}
+
+  header.hero{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:26px 30px;
+    margin-bottom:20px;
+  }
+  .eyebrow{
+    display:inline-block;
+    font-size:11px;letter-spacing:.14em;
+    color:var(--ink-3);text-transform:uppercase;
+    margin-bottom:9px;
+  }
+  h1{font-size:25px;line-height:1.3;margin:0 0 8px;font-weight:650;letter-spacing:-.01em;}
+  .sub{font-size:13.5px;color:var(--ink-2);line-height:1.75;margin:0;}
+  .meta{
+    margin-top:16px;padding-top:14px;border-top:1px dashed var(--line);
+    display:flex;flex-wrap:wrap;gap:8px 26px;font-size:12px;color:var(--ink-3);
+  }
+  .meta b{color:var(--ink-2);font-weight:600;}
+
+  .legend{
+    display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;
+  }
+  .lg{
+    display:inline-flex;align-items:center;gap:6px;
+    font-size:11.5px;color:var(--ink-2);
+    background:#fbfcfc;border:1px solid var(--line);
+    border-radius:100px;padding:4px 11px;
+  }
+  .dot{width:8px;height:8px;border-radius:2px;}
+
+  .cols{
+    display:grid;grid-template-columns:1fr 1fr;gap:20px;
+    align-items:start;
+  }
+  @media (max-width:1180px){ .cols{grid-template-columns:1fr;} }
+
+  .col{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:14px;
+    overflow:hidden;
+  }
+  .col-head{
+    padding:16px 20px 14px;
+    border-bottom:1px solid var(--line);
+    display:flex;align-items:flex-start;justify-content:space-between;gap:12px;
+  }
+  .col-head .t{font-size:15px;font-weight:650;letter-spacing:-.005em;}
+  .col-head .d{font-size:11.5px;color:var(--ink-3);margin-top:4px;line-height:1.6;}
+  .badge{
+    flex:none;font-size:10.5px;font-weight:600;letter-spacing:.06em;
+    padding:5px 9px;border-radius:6px;white-space:nowrap;
+  }
+  .badge.now{background:#fbe9e7;color:#9a2f22;border:1px solid #f2cfc9;}
+  .badge.next{background:#e3f4f1;color:#0b6a61;border:1px solid #c5e7e1;}
+
+  .flow{padding:20px 20px 22px;}
+
+  .node{
+    position:relative;
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:11px 13px 11px 15px;
+    box-shadow:0 1px 2px rgba(20,32,43,.03);
+  }
+  .node::before{
+    content:"";position:absolute;left:0;top:0;bottom:0;width:3px;
+    border-radius:10px 0 0 10px;background:var(--data);
+  }
+  .node .row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .tag{
+    font-size:10px;font-weight:600;letter-spacing:.05em;
+    padding:2px 7px;border-radius:4px;white-space:nowrap;
+  }
+  .node .ti{font-size:13.5px;font-weight:600;letter-spacing:-.005em;}
+  .node .ds{font-size:11.5px;color:var(--ink-3);line-height:1.65;margin-top:5px;}
+  .node .ev{
+    display:inline-block;margin-top:7px;font-size:10.5px;color:var(--ink-2);
+    background:#f5f7f8;border-radius:4px;padding:2px 7px;
+    font-variant-numeric:tabular-nums;
+  }
+  .node .vn{
+    position:absolute;right:11px;top:10px;font-size:10px;font-weight:700;
+    color:#aab6bd;letter-spacing:.04em;
+  }
+
+  /* 类型配色 */
+  .t-trigger::before{background:var(--trigger);} .t-trigger .tag{background:#eceff1;color:#33414d;}
+  .t-manual::before{background:var(--manual);}   .t-manual .tag{background:var(--manual-bg);color:#a2661c;}
+  .t-exception::before{background:var(--exception);} .t-exception .tag{background:var(--exception-bg);color:#a52d21;}
+  .t-ai::before{background:var(--ai);}           .t-ai .tag{background:var(--ai-bg);color:#0b6a61;}
+  .t-rule::before{background:var(--rule);}       .t-rule .tag{background:var(--rule-bg);color:#265d86;}
+  .t-human::before{background:var(--human);}     .t-human .tag{background:var(--human-bg);color:#4c3d92;}
+  .t-audit::before{background:var(--audit);}     .t-audit .tag{background:var(--audit-bg);color:#6b3f76;}
+  .t-data::before{background:var(--data);}       .t-data .tag{background:var(--data-bg);color:#3b5364;}
+
+  .node.exception{
+    border-color:#f0d4cf;background:#fffaf9;
+  }
+  .node.hot{
+    border-color:#efcfc8;background:#fffafa;
+    box-shadow:0 0 0 3px rgba(192,57,43,.05);
+  }
+
+  /* 连接线 */
+  .link{
+    height:24px;margin-left:26px;position:relative;
+  }
+  .link::before{
+    content:"";position:absolute;left:0;top:0;bottom:9px;width:1.5px;background:#e2e8eb;
+  }
+  .link::after{
+    content:"";position:absolute;left:-3.2px;bottom:2px;
+    border-left:4px solid transparent;border-right:4px solid transparent;
+    border-top:6px solid #cfd8dd;
+  }
+  .link.dashed::before{background:repeating-linear-gradient(to bottom,#e2a8a1 0 4px,transparent 4px 8px);}
+  .link.dashed::after{border-top-color:#e2a8a1;}
+
+  .branch{
+    margin:10px 0 10px 26px;
+    padding-left:14px;
+    border-left:1.5px dashed #e6ebee;
+    display:flex;flex-direction:column;gap:9px;position:relative;
+  }
+  .branch .bl{
+    font-size:10.5px;color:var(--ink-3);letter-spacing:.05em;margin:-2px 0 1px;
+    font-weight:600;
+  }
+  .branch .item{position:relative;}
+  .branch .item::before{
+    content:"";position:absolute;left:-17px;top:16px;width:9px;height:1.5px;background:#dfe5e9;
+  }
+
+  .mini{
+    display:inline-flex;align-items:center;gap:5px;
+    font-size:10.5px;font-weight:600;padding:2px 7px;border-radius:4px;
+    margin-top:7px;
+  }
+  .mini.bad{background:#fdeeec;color:#a52d21;}
+  .mini.good{background:#e8f5f3;color:#0b6a61;}
+
+  /* 底部对比 */
+  section.compare{
+    margin-top:20px;background:var(--card);border:1px solid var(--line);
+    border-radius:14px;overflow:hidden;
+  }
+  section.compare h2{
+    font-size:14.5px;font-weight:650;margin:0;
+    padding:15px 20px 13px;border-bottom:1px solid var(--line);
+  }
+  table{width:100%;border-collapse:collapse;font-size:12px;}
+  th,td{text-align:left;padding:10px 18px;border-bottom:1px solid #eef1f3;vertical-align:top;line-height:1.65;}
+  thead th{
+    font-size:11px;letter-spacing:.06em;color:var(--ink-3);
+    background:#fafbfb;font-weight:600;text-transform:uppercase;
+  }
+  td.dim{font-weight:600;color:var(--ink);white-space:nowrap;}
+  tr:last-child td{border-bottom:none;}
+  .bad{color:#a52d21;}
+  .good{color:#0b6a61;}
+
+  .boundary{
+    margin-top:20px;
+    display:grid;grid-template-columns:1.15fr .85fr;gap:20px;
+  }
+  @media (max-width:1180px){ .boundary{grid-template-columns:1fr;} }
+
+  .box{
+    background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:18px 20px 20px;
+  }
+  .box h3{font-size:13.5px;font-weight:650;margin:0 0 11px;}
+  .box ul{margin:0;padding-left:16px;font-size:12px;line-height:1.85;color:var(--ink-2);}
+  .box li{margin-bottom:5px;}
+  .box li b{color:var(--ink);}
+  .who{
+    display:grid;grid-template-columns:repeat(2,1fr);gap:9px;margin-top:4px;
+  }
+  .who div{
+    font-size:11.5px;line-height:1.6;color:var(--ink-2);
+    background:#fafbfb;border:1px solid var(--line);border-radius:8px;padding:8px 10px;
+  }
+  .who b{display:block;font-size:11px;color:var(--ink);margin-bottom:2px;}
+
+  footer{
+    margin-top:22px;font-size:11px;color:var(--ink-3);line-height:1.8;
+    border-top:1px dashed var(--line);padding-top:14px;
+  }
+  @media print{
+    body{background:#fff;}
+    .page{max-width:none;padding:0;}
+    .col,.box,header.hero,section.compare{break-inside:avoid;}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="hero">
+    <div class="eyebrow">FDE · 清禾综合医院 · 出院随访与患者协作</div>
+    <h1>现状业务流程（无 AI）与 AI 增强后的系统流程对比</h1>
+    <p class="sub">
+      左侧是从 <b>02 现场调研</b>「最近一单」还原的纯人工串行流程：护士靠 Excel 名单、手工分组、逐个电话外呼，
+      红旗靠个人判断、升级无留痕，记录靠手填。<br>
+      右侧是 <b>04 方案设计</b> 选定的 B+C 组合方案：确定性规则做骨架，模型只在「陈述整理」与「红旗提示」两处介入，
+      所有对外记录经护士确认。
+    </p>
+    <div class="meta">
+      <span><b>试点范围</b>　骨科 2 病区 · 常规术后患者 · 4 周</span>
+      <span><b>当前完成率</b>　61% → 目标 85%</span>
+      <span><b>单次随访</b>　12 分钟（含 4 分钟重复录入）</span>
+      <span><b>每月规模</b>　约 1200 名出院患者</span>
+    </div>
+    <div class="legend">
+      <span class="lg"><i class="dot" style="background:var(--trigger)"></i>触发事件</span>
+      <span class="lg"><i class="dot" style="background:var(--manual)"></i>人工执行</span>
+      <span class="lg"><i class="dot" style="background:var(--exception)"></i>异常 / 缺陷</span>
+      <span class="lg"><i class="dot" style="background:var(--data)"></i>数据接口</span>
+      <span class="lg"><i class="dot" style="background:var(--rule)"></i>确定性规则</span>
+      <span class="lg"><i class="dot" style="background:var(--ai)"></i>AI 能力</span>
+      <span class="lg"><i class="dot" style="background:var(--human)"></i>人工复核节点</span>
+      <span class="lg"><i class="dot" style="background:var(--audit)"></i>审计留痕</span>
+    </div>
+  </header>
+
+  <div class="cols">
+
+    <!-- ============ 左：现状 ============ -->
+    <div class="col">
+      <div class="col-head">
+        <div>
+          <div class="t">现状业务流程 · 无 AI</div>
+          <div class="d">纯人工串行，产能与安全双瓶颈，异常路径无跟踪</div>
+        </div>
+        <span class="badge now">基线 61%</span>
+      </div>
+
+      <div class="flow">
+
+        <div class="node t-trigger">
+          <span class="vn">01</span>
+          <div class="row"><span class="tag">触发</span><span class="ti">患者出院</span></div>
+          <div class="ds">出院当日进入随访范围，无系统提醒，靠护士按名单自查。</div>
+        </div>
+
+        <div class="link"></div>
+
+        <div class="node t-manual">
+          <span class="vn">02</span>
+          <div class="row"><span class="tag">人工</span><span class="ti">HIS 导出 Excel 名单</span></div>
+          <div class="ds">门诊/住院系统导出，与随访登记表之间<b>没有统一访谈 ID</b>，只能靠「住院号 + 出院时间」人工区分重复。</div>
+          <span class="ev">医疗-002 · 医疗-010</span>
+          <div class="mini bad">断点 ①　标识不唯一</div>
+        </div>
+
+        <div class="link"></div>
+
+        <div class="node t-manual">
+          <span class="vn">03</span>
+          <div class="row"><span class="tag">人工</span><span class="ti">护士手工分组与排程</span></div>
+          <div class="ds">按科室 / 术式手工分组，不同术式对应不同问卷，分组结果决定当天打给谁。</div>
+          <span class="ev">医疗-002 · 医疗-008</span>
+        </div>
+
+        <div class="link"></div>
+
+        <div class="node t-manual">
+          <span class="vn">04</span>
+          <div class="row"><span class="tag">人工</span><span class="ti">逐个电话外呼</span></div>
+          <div class="ds">单次约 12 分钟。患者偏好晚间接听、老年患者需家属协助，但名单上无法标注。</div>
+          <span class="ev">医疗-006 · 医疗-016</span>
+          <div class="mini bad">瓶颈 ②　无效拨打消耗工时</div>
+        </div>
+
+        <div class="branch">
+          <div class="bl">外呼结果分三路</div>
+
+          <div class="item">
+            <div class="node t-exception exception">
+              <div class="row"><span class="tag">异常 A</span><span class="ti">号码失效 / 上班 / 方言 → 三次未接</span></div>
+              <div class="ds">直接搁置，<b>无后续跟踪</b>，患者状态不明。这是完成率缺口的主要来源。</div>
+              <span class="ev">医疗-004</span>
+            </div>
+          </div>
+
+          <div class="item">
+            <div class="node t-exception exception">
+              <div class="row"><span class="tag">异常 B</span><span class="ti">出现危险信号 → 停止问卷</span></div>
+              <div class="ds">呼吸困难、胸闷、晕厥等表述，靠护士<b>个人判断</b>后按院内既有流程口头升级，<b>全程无系统留痕</b>，漏报不可追溯。</div>
+              <span class="ev">医疗-005 · 医疗-015</span>
+              <div class="mini bad">事故风险　P1 最高优先级</div>
+            </div>
+          </div>
+
+          <div class="item">
+            <div class="node t-manual">
+              <div class="row"><span class="tag">正常</span><span class="ti">手工填写随访登记表</span></div>
+              <div class="ds">通话内容与登记表字段大量重复，每次约 <b>4 分钟</b>重复录入。</div>
+              <span class="ev">医疗-006</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="link"></div>
+
+        <div class="node t-manual">
+          <span class="vn">05</span>
+          <div class="row"><span class="tag">人工</span><span class="ti">发给专科 → 专科确认 → 必要时复诊</span></div>
+          <div class="ds">记录靠人工转交，专科确认后再人工安排复诊，环节之间无状态回传。</div>
+          <span class="ev">医疗-007</span>
+        </div>
+
+        <div class="link"></div>
+
+        <div class="node t-exception exception">
+          <span class="vn">06</span>
+          <div class="row"><span class="tag">统计</span><span class="ti">月度人工汇总完成率</span></div>
+          <div class="ds">护理部按「触达」计、患者服务按「成功完成问卷」计，<b>两套口径</b>，发送量易被当成完成量。</div>
+          <span class="ev">医疗-017</span>
+          <div class="mini bad">口径冲突</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============ 右：AI 增强 ============ -->
+    <div class="col">
+      <div class="col-head">
+        <div>
+          <div class="t">AI 增强后的系统流程</div>
+          <div class="d">B 确定性规则做骨架 + C 模型限定能力，人在环上</div>
+        </div>
+        <span class="badge next">目标 85%</span>
+      </div>
+
+      <div class="flow">
+
+        <div class="node t-trigger">
+          <span class="vn">01</span>
+          <div class="row"><span class="tag">触发</span><span class="ti">患者出院</span></div>
+          <div class="ds">出院事件由 HIS 只读接口自动进入随访队列，无需人工发起。</div>
+        </div>
+
+        <div class="link"></div>
+
+        <div class="node t-data">
+          <span class="vn">02</span>
+          <div class="row"><span class="tag">数据</span><span class="ti">HIS 只读名单接口</span></div>
+          <div class="ds">每日凌晨全量导出，带版本号与导出时间戳；<b>只收最小必要 8 字段</b>，清单外字段一律拒收。</div>
+          <span class="ev">医疗-012 · 医疗-013 · REQ-05</span>
+        </div>
+
+        <div class="link"></div>
+
+        <div class="node t-rule">
+          <span class="vn">03</span>
+          <div class="row"><span class="tag">规则</span><span class="ti">授权与标识映射网关</span></div>
+          <div class="ds">以「住院号 + 出院时间」为唯一标识去重；家属号码强制标注<b>联系人类型与授权状态</b>，授权缺失直接不外呼。</div>
+          <span class="ev">医疗-010 · 医疗-011 · REQ-04</span>
+          <div class="mini good">断点 ① 已消除</div>
+        </div>
+
+        <div class="link"></div>
+
+        <div class="node t-rule">
+          <span class="vn">04</span>
+          <div class="row"><span class="tag">规则</span><span class="ti">排程引擎</span></div>
+          <div class="ds">术式模板版本过滤（<b>专科未签发的版本不下发</b>）→ 晚间时段优先 → 每工作日 08:00 前生成当日排程。</div>
+          <span class="ev">医疗-008 · 医疗-016 · REQ-01/03</span>
+        </div>
+
+        <div class="link"></div>
+
+        <div class="node t-rule">
+          <span class="vn">05</span>
+          <div class="row"><span class="tag">规则</span><span class="ti">触达工作台</span></div>
+          <div class="ds">电话外呼辅助 + 短信；三次未接<b>自动搁置并进入人工跟进清单</b>，不再无声丢失。</div>
+          <span class="ev">医疗-004 · REQ-01</span>
+          <div class="mini good">瓶颈 ② 转为可管理队列</div>
+        </div>
+
+        <div class="link"></div>
+
+        <div class="node t-ai">
+          <span class="vn">06</span>
+          <div class="row"><span class="tag">AI</span><span class="ti">随访对话（术式问卷）</span></div>
+          <div class="ds">按签发版本问卷引导患者作答，支持家属代答与方言表述采集，全程标记来源。</div>
+        </div>
+
+        <div class="link"></div>
+
+        <div class="node t-ai hot">
+          <span class="vn">07</span>
+          <div class="row"><span class="tag">AI</span><span class="ti">红旗检测 · 规则词表 + 模型提示</span></div>
+          <div class="ds">规则保证已知高危词必定命中，模型补齐方言与口语变体。<b>宁误报不漏报</b>：置信度低一律按红旗处理。</div>
+          <span class="ev">医疗-005 · REQ-02</span>
+        </div>
+
+        <div class="branch">
+          <div class="bl">命中红旗后的强制路径</div>
+          <div class="item">
+            <div class="node t-ai">
+              <div class="row"><span class="tag">AI</span><span class="ti">立即中断问卷 → 生成升级工单</span></div>
+              <div class="ds">≤ 1 分钟内生成，工单含触发时间、触发表述、处置人三要素。</div>
+              <span class="ev">REQ-02 验收阈值</span>
+            </div>
+          </div>
+          <div class="item">
+            <div class="node t-human">
+              <div class="row"><span class="tag">人复核</span><span class="ti">护士 / 专科医生处置</span></div>
+              <div class="ds">按院内既有流程接诊；AI 只提示、不诊断、不调药、不替代升级流程。</div>
+              <span class="ev">医疗-009 · 医疗-015</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="link"></div>
+
+        <div class="node t-ai">
+          <span class="vn">08</span>
+          <div class="row"><span class="tag">AI</span><span class="ti">记录草稿服务</span></div>
+          <div class="ds">患者陈述自动整理为结构化草稿，替代 4 分钟重复录入；<b>AI 不签名</b>。</div>
+          <span class="ev">医疗-006 · REQ-06</span>
+        </div>
+
+        <div class="link"></div>
+
+        <div class="node t-human">
+          <span class="vn">09</span>
+          <div class="row"><span class="tag">人复核</span><span class="ti">护士确认</span></div>
+          <div class="ds">所有对外记录必须经护士确认；不确认则仅存草稿、不归档。</div>
+          <span class="ev">REQ-06 硬约束</span>
+          <div class="mini good">人在环上</div>
+        </div>
+
+        <div class="link"></div>
+
+        <div class="node t-data">
+          <span class="vn">10</span>
+          <div class="row"><span class="tag">系统</span><span class="ti">写入随访登记表 → 专科摘要</span></div>
+          <div class="ds">确认后写入，自动生成专科摘要；必要时由人安排复诊。完成率按<b>成功完成问卷</b>单一口径统计。</div>
+          <span class="ev">医疗-007 · 医疗-017</span>
+        </div>
+
+        <div class="link"></div>
+
+        <div class="node t-audit">
+          <span class="vn">11</span>
+          <div class="row"><span class="tag">贯穿</span><span class="ti">审计留痕库（横向贯穿全流程）</span></div>
+          <div class="ds">操作 / 升级 / 授权三类事件不可篡改留痕；撤回授权 24 小时内停用原录音且不用于训练。</div>
+          <span class="ev">医疗-013/014/015 · REQ-05</span>
+          <div class="mini good">安全事故可追溯</div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 对比表 -->
+  <section class="compare">
+    <h2>六个环节的逐项对比</h2>
+    <table>
+      <thead>
+        <tr><th style="width:13%">环节</th><th style="width:36%">现状（无 AI）</th><th style="width:36%">AI 增强后</th><th style="width:15%">责任角色</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="dim">名单与标识</td>
+          <td class="bad">Excel 导出，无统一访谈 ID，人工按住院号+出院时间辨认重复</td>
+          <td class="good">只读接口 + 网关自动去重，家属号码强制标注授权状态</td>
+          <td>信息工程师 秦芮</td>
+        </tr>
+        <tr>
+          <td class="dim">排程</td>
+          <td class="bad">护士按科室/术式手工分组，无版本校验</td>
+          <td class="good">规则引擎按模板签发版本过滤，晚间时段自动优先</td>
+          <td>随访护士 林亦舟</td>
+        </tr>
+        <tr>
+          <td class="dim">触达</td>
+          <td class="bad">逐个外呼，三次未接即搁置，无跟踪</td>
+          <td class="good">外呼辅助 + 短信，未接自动转人工跟进清单</td>
+          <td>随访护士 林亦舟</td>
+        </tr>
+        <tr>
+          <td class="dim">红旗升级</td>
+          <td class="bad">靠个人判断，口头升级，无留痕；漏报不可追溯</td>
+          <td class="good">规则 + 模型双通道，命中即中断并生成工单，全程审计</td>
+          <td>护士发起 / 专科 唐映秋处置</td>
+        </tr>
+        <tr>
+          <td class="dim">记录</td>
+          <td class="bad">手工填写，每次 4 分钟重复录入</td>
+          <td class="good">AI 生成结构化草稿，护士确认后归档，AI 不签名</td>
+          <td>随访护士 林亦舟</td>
+        </tr>
+        <tr>
+          <td class="dim">统计口径</td>
+          <td class="bad">触达率与完成率两套口径，易用发送量代替完成量</td>
+          <td class="good">统一为「成功完成问卷」，满意度单独成表</td>
+          <td>患者服务经理 叶书</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <div class="boundary">
+    <div class="box">
+      <h3>AI 职责边界（三做三不做）</h3>
+      <ul>
+        <li><b>做：</b>按规则生成排程与搁置策略，确定性、可复现。</li>
+        <li><b>做：</b>提示红旗，宁可误报不漏报，召回优先于精确。</li>
+        <li><b>做：</b>把患者陈述整理成结构化草稿，减少重复录入。</li>
+        <li><b>不做：</b>诊断、调药、代签名（医疗-009）。</li>
+        <li><b>不做：</b>自动挂号开方，调用院外模型服务（医疗-012、013）。</li>
+        <li><b>不做：</b>未告知授权即录音，或将录音用于模型训练（医疗-014）。</li>
+      </ul>
+    </div>
+
+    <div class="box">
+      <h3>关键控制点落在谁身上</h3>
+      <div class="who">
+        <div><b>顾明岚 · 护理部负责人</b>结果承担，批范围与验收</div>
+        <div><b>傅景 · 隐私与质控</b>叫停权，红线否决</div>
+        <div><b>唐映秋 · 专科医生</b>模板签发，升级处置</div>
+        <div><b>秦芮 · 信息工程师</b>接口与字段审批</div>
+        <div><b>林亦舟 · 随访护士</b>记录确认，红旗发起</div>
+        <div><b>叶书 · 患者服务</b>完成率口径验收</div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    数据来源：<b>02-现场调研.md</b>（现状流程与异常路径）、<b>03-需求定义.md</b>（REQ-01～06）、<b>04-方案设计.md</b>（组合方案 B+C）、<b>00-案例事实台账.md</b>（医疗-001～018）。<br>
+    除案例设定值外，图中测算数字均为演练示例；图为流程示意，不代表真实系统架构细节。
+  </footer>
+
+</div>
+</body>
+</html>
