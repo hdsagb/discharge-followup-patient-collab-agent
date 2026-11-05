@@ -1,0 +1,12 @@
+{
+  "batch_version": "HIS-20261104-v2",
+  "exported_at": "2026-11-04T02:12:00",
+  "note": "演练样本：含超额字段（身份证号/家庭住址）与重复记录，验证拒收与合并",
+  "rows": [
+    {"inpatient_no": "ZY2026110101", "discharge_time": "2026-11-02T10:20:00", "department": "骨科一病区", "procedure_code": "PG-ORTHO-THR", "followup_status": "待随访", "contact_phone": "13800001111", "contact_type": "本人", "auth_status": "已授权", "id_card": "110101199001011234", "address": "某市某区某路 1 号"},
+    {"inpatient_no": "ZY2026110101", "discharge_time": "2026-11-02T10:20:00", "department": "骨科一病区", "procedure_code": "PG-ORTHO-THR", "followup_status": "待随访", "contact_phone": "13800001111", "contact_type": "本人", "auth_status": "已授权", "id_card": "110101199001011234", "address": "某市某区某路 1 号"},
+    {"inpatient_no": "ZY2026110108", "discharge_time": "2026-11-03T18:10:00", "department": "骨科二病区", "procedure_code": "PG-ORTHO-THR", "followup_status": "待随访", "contact_phone": "13200008888", "contact_type": "本人", "auth_status": "已授权", "id_card": "110101195001011234", "address": "某市某区某路 2 号"},
+    {"inpatient_no": "ZY2026110111", "discharge_time": "2026-11-04T11:20:00", "department": "骨科二病区", "procedure_code": "PG-ORTHO-TKR", "followup_status": "待随访", "contact_phone": "13900012345", "contact_type": "家属", "auth_status": "已授权", "id_card": "110101197001011234", "address": "某市某区某路 3 号"},
+    {"inpatient_no": "ZY2026110112", "discharge_time": "2026-11-04T13:00:00", "department": "骨科二病区", "procedure_code": "PG-ORTHO-TKR", "followup_status": "待随访", "contact_phone": "1234", "contact_type": "本人", "auth_status": "已授权", "id_card": "110101198001011234", "address": "某市某区某路 4 号"}
+  ]
+}

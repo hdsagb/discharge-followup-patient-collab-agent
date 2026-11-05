@@ -1,0 +1,75 @@
+{
+  "version": "1.0",
+  "signed_by": "u-doctor-01",
+  "effective_date": "2026-10-01",
+  "rule_set_id": "RF-ORTHO",
+  "action": "interrupt_questionnaire_and_create_ticket",
+  "model_channel": {
+    "name": "local-lexicon-stub",
+    "note": "院内本地替身：变体词模糊匹配，不调用任何院外模型服务（医疗-013）",
+    "min_confidence": 0.6,
+    "policy": "非否定、非语义反转的疑似表述达到阈值即按红旗升级（宁误报不漏报）；否定与语义反转不计入命中，避免把正常回答误判为红旗"
+  },
+  "rules": [
+    {
+      "rule_id": "RF-ORTHO-01",
+      "title": "呼吸困难",
+      "severity": "immediate",
+      "keywords": ["呼吸困难", "喘不上气", "憋气", "气短", "呼吸费劲", "上不来气"],
+      "regex": ["呼吸(困难|急促)", "喘(不|不)过"],
+      "variants": ["喘不上气来", "透不过气", "喘不过来气", "呼吸不畅", "胸口憋得慌",
+                   "气儿不够用", "喘气费劲", "上不来气儿", "呼哧呼哧"],
+      "escalation": "专科医生 → 护士长"
+    },
+    {
+      "rule_id": "RF-ORTHO-02",
+      "title": "高热",
+      "severity": "immediate",
+      "keywords": ["发烧", "高热", "体温高", "烧得厉害"],
+      "regex": ["体温\\s*[≥>]?\\s*3[89](\\.\\d)?", "3[89](\\.\\d)?\\s*度"],
+      "variants": ["烧到三十八度五", "浑身烫", "发高烧", "身上发烫", "烧到39",
+                   "三十八度八", "体温三十九度"],
+      "escalation": "专科医生 → 护士长"
+    },
+    {
+      "rule_id": "RF-ORTHO-03",
+      "title": "伤口感染征象",
+      "severity": "immediate",
+      "keywords": ["渗液", "流脓", "伤口发臭", "红肿", "伤口裂开", "渗血"],
+      "regex": ["伤口.{0,4}(化脓|流脓|裂开|渗液)"],
+      "variants": ["伤口出水", "伤口湿乎乎的", "伤口有黄水", "纱布湿透了",
+                   "伤口味道大", "刀口发红发肿", "伤口没长好"],
+      "escalation": "专科医生 → 护士长"
+    },
+    {
+      "rule_id": "RF-ORTHO-04",
+      "title": "静脉血栓/胸痛",
+      "severity": "immediate",
+      "keywords": ["胸痛", "胸闷", "腿肿", "小腿肿胀", "单侧肿"],
+      "regex": ["(小腿|下肢).{0,4}(肿|硬|胀)"],
+      "variants": ["胸口压着疼", "胸口闷得慌", "腿肿得厉害", "小腿发胀发硬",
+                   "一条腿粗了", "喘气时胸口疼"],
+      "escalation": "专科医生 → 急诊评估"
+    },
+    {
+      "rule_id": "RF-ORTHO-05",
+      "title": "晕厥/意识改变",
+      "severity": "immediate",
+      "keywords": ["晕倒", "晕厥", "意识不清", "站不稳"],
+      "regex": ["(晕倒|昏倒|意识(模糊|不清))"],
+      "variants": ["眼前一黑", "头一阵发晕就倒了", "站不住", "人发晕",
+                   "晕过去了", "差点没站住"],
+      "escalation": "专科医生 → 急诊评估"
+    },
+    {
+      "rule_id": "RF-ORTHO-06",
+      "title": "剧烈疼痛",
+      "severity": "immediate",
+      "keywords": ["剧烈疼痛", "疼得受不了", "止痛药没用"],
+      "regex": ["疼痛.{0,3}(加重|加剧)"],
+      "variants": ["疼得睡不着", "疼得直冒汗", "疼起来受不了", "疼得厉害",
+                   "吃止痛药也不管用", "疼得不敢动"],
+      "escalation": "专科医生 → 护士长"
+    }
+  ]
+}

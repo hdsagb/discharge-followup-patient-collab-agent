@@ -296,9 +296,72 @@ HIS 只读视图
 ## 九、修订待办
 
 - [x] 完成候选仓源码级安全复核（commit `3ef3231`）
+- [x] 核对各仓许可证：HealthClaw / Gayan / Care-Gap / Developer 为 MIT；**CareBridge、慢康智枢、JSP 随访无 LICENSE 文件**（默认保留全部权利，代码不可复制）
 - [ ] 信息科按 6.1 复用边界走查 `r6/` 子集，确认无隐藏出网
 - [ ] POC：确认令牌 + 审计哈希链（SEC-02/05）
 - [ ] 出口探针脚本与防火墙规则（SEC-01）
 - [ ] 傅景确认录音撤回流程、短信模板与保留年限
 - [ ] Synthea 术语授权与 ICD-10 国临版映射方案
 - [ ] 06 评估集补入 12 条安全用例
+
+---
+
+## 十、可借鉴内容的逐项裁定
+
+把"能不能用"拆成三种颗粒度：**代码级采用（vendor）**、**设计级借鉴（重写）**、**禁止使用**。判定门槛是三条同时满足才允许代码级采用：① 许可证允许；② 该文件在离线环境不自带出网；③ 能通过对应的 SEC 用例。
+
+### 10.1 代码级采用（可 vendor 进仓）
+
+| 来源 | 具体内容 | 许可 | 改造要求 | 验收 |
+|---|---|---|---|---|
+| HealthClaw `r6/stepup.py` | HMAC-SHA256 签名、scope 白名单、nonce 防重放、TTL | MIT | 签名载荷加入 `record_digest + nurse_id + action_id`；TTL 收到 300 s | SEC-02、SEC-03 |
+| HealthClaw `r6/audit.py` | 审计写失败抛异常并回滚业务事务（fail-closed） | MIT | 事件类型扩为操作/升级/授权三类 + 六类异常 | SEC-05、异常样例集 |
+| HealthClaw `r6/audit_ddl.py` | Postgres 函数 + SQLite 触发器阻断 UPDATE/DELETE | MIT | 增加 `prev_hash`/`entry_hash` 列与链校验脚本 | SEC-05 |
+| HealthClaw `r6/log_safety.py` | 日志不写调用方 ID 原文、不记 query string | MIT | 增加住院号、手机号的键控哈希掩码 | SEC-09 |
+| HealthClaw `r6/read_auth.py`、`access.py`、`tenancy.py` | 租户绑定读取令牌、scope 白名单、行级隔离 | MIT | 病区 = tenant；映射 04 的角色权限矩阵 | SEC-04 |
+| HealthClaw `r6/rate_limit.py` | 登录/外呼/确认接口限流 | MIT | 无 Redis 时改数据库计数（避免新增中间件） | 压测记录 |
+| HealthClaw `r6/body_guard.py` | 请求体大小与类型限制 | MIT | 原样 | SEC-11 |
+| HealthClaw `vendor_frontend_assets.py` 思路 | 第三方前端静态资源本地化 | MIT | 按院内前端结构重写（约 30 行），配合 CSP 禁外链 | 断网页面可用 |
+| Gayan `backend/app/services/human_review_service.py` 的数据模型与幂等键 | 工单字段 `reason`、`recommended_action`、`triggering_agent`、`input_json`；按 `(session_id, agent_run_id, triggering_agent, status=pending)` 去重 | MIT | **可复用建单逻辑（MIT 允许复制），但必须改造**：`resolved_by` 改为服务端会话取值，禁止调用方传入；补确认令牌；工单创建与审计写入同一事务 | 红旗工单不重复、责任人可追溯 |
+| Gayan `backend/evals/eval_human_review.py` 的评估组织 | approve/reject/continue 三态 + "决策数与审计条数一致"断言 | MIT | 移植为 06 评估集的确认链路用例 | 06 评估集 |
+| Care-Gap `care_gap_agent/routing/rules.yaml` 的规则包格式 | "意图 → 工具链 → 呈现方式"声明式 YAML，规则即文档 | MIT | 换成本项目的红旗规则与问卷触发规则（可按版本审计） | 规则版本号与追溯 |
+| Synthea 生成器 | 合成患者与 FHIR 资源 | Apache-2.0 | 只在隔离构建机生成，产物离线导入 | 8.4(6) 隔离要求 |
+
+> MIT 采用时必须保留版权声明与许可证文本（`third_party/` 下存放 `LICENSE`）；不使用其项目名称与 logo。
+
+### 10.2 只借鉴设计、重写实现（不可复制代码）
+
+| 来源 | 可借鉴部分 | 为什么不能复制 | 本项目落点 |
+|---|---|---|---|
+| CareBridge（**无 LICENSE**） | 医生确认弹窗的"计划预览 → 逐项确认 → 落库"交互；患者侧计划卡片的信息层级 | 无许可证 = 默认保留全部权利；且代码绑定 Groq 外发 | 护士工作台交互重画（前端自研） |
+| CareBridge `test_security.py` | PDF 魔数 + 大小上限的校验位置 | 同上 | 用 10 行重写（附件上传校验） |
+| 慢康智枢（**无 LICENSE**） | HIS 字段映射预览的信息架构：源字段 / 目标字段 / 必填 / 默认值 / 转换规则 | 无许可证；部署在公网平台；栖霞数据集来源待核 | 数据契约 v1.1 的"映射预览表"，由秦芮确认 |
+| 慢康智枢 | MDT 任务单与会议纪要的字段组织 | 同上 | 专科摘要模板的字段清单 |
+| Gayan `backend/app/agents/multi/graph.py` | Supervisor 把"需人工"路由到独立节点，节点只创建工单、不改业务数据 | 整体代码鉴权缺失（审计/工单接口无鉴权） | 红旗中断后"只建单、不写登记表"的结构 |
+| Gayan `backend/evals/eval_audit_coverage.py` | 以"关键动作是否都产生审计"为评估项 | 同上 | 06 评估集补审计覆盖率用例 |
+| Care-Gap | "agent 只做推理、数据与起草交给独立服务"的分层原则 | 运行态依赖 Gemini + MCP + ngrok，工具描述本身是注入面 | 进程内分层：编排 / 规则 / 投影 / 写库各司其职，不引入 MCP |
+| Care-Gap `prompts/skills.yaml` | 用 `examples` 固化能力边界（可审计的对外能力声明） | 同上 | 只用于内部接口文档，不对外发布 |
+
+### 10.3 明确不采用
+
+| 来源 | 不采用的内容 | 原因 |
+|---|---|---|
+| HealthClaw | `careagents/*`、`voice.py`、`telegram_push.py`、`email_inbound.py`、`oauth.py`、`upstream_connectors.py`、`fhir_proxy.py` 写路径、`.mcp.json`、`vercel.json`/`railway.toml` | 患者侧 SaaS 与外部模型/语音通道，直接违反医疗-013 |
+| CareBridge | 后端全部（`llm.py`、`agents/privacy.py`、`db.py`） | 出院小结外发 Groq；审计可篡改；无排程/红旗能力 |
+| Developer 出院系统（**MIT 但不用**） | 全部 | 提交 `venv1001/`、依赖 8 个境外云、版本约束宽松；许可证允许不等于可安全使用 |
+| JSP 随访系统（**无 LICENSE**） | 全部 | `admin/admin` 硬编码、异常堆栈回显、无许可证 |
+| Gayan | 全部运行代码 | 审计接口无鉴权；`resolved_by` 可由调用方伪造；依赖外部 LLM |
+| Care-Gap | 全部运行代码与 MCP server | Gemini 外发、`demo-key` 默认值、ngrok 暴露面 |
+| 再入院预测类 | 全部模型与权重 | 训练数据多为 MIMIC 类受控数据，授权与漂移风险高；本项目 4 周试点不需要风险打分 |
+| 精选清单类 | 不引入 | 只是索引，无实现 |
+
+### 10.4 采用顺序
+
+1. **先落"能证明合规"的三件**：确认令牌、fail-closed 审计、出口探针。这三件决定项目能不能碰真实数据。
+2. **再落"能提效"的三件**：日志卫生、租户隔离、限流/请求体防护。
+3. **最后落"能复用结构"的三件**：Gayan 工单模型、Care-Gap 规则包格式、Synthea 合成数据。
+4. 交互类（CareBridge、慢康智枢）放在界面开发阶段，**由前端按图一重画**，不进入依赖清单。
+
+> 一句话结论：能"采用"的只有 HealthClaw `r6/` 的 9 个安全文件、Gayan 的建单逻辑与评估组织、Care-Gap 的规则包格式、Synthea 生成器；其余 5 个仓库只能提供阅读材料。CareBridge 与慢康智枢连"复制代码"都不合法，只能学交互。
+>
+> 逐项的来源文件、许可证、必改内容、代码片段与验收用例见 [借鉴清单.md](借鉴清单.md)（附录 C）。

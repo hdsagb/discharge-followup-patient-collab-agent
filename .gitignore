@@ -5,6 +5,9 @@
 __pycache__/
 *.pyc
 
+# 运行时数据（SQLite 库、审计库、评估报告，均属本机运行产物）
+data/
+
 # 系统文件
 Thumbs.db
 .DS_Store

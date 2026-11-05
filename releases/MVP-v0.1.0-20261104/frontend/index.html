@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>出院随访与患者协作 Agent · 工作台</title>
+<link rel="stylesheet" href="/app.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <div class="logo">清</div>
+    <div>
+      <h1>出院随访与患者协作 Agent</h1>
+      <p>清禾综合医院 · 骨科 2 个病区 · 院内单机部署</p>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <span class="boundary" title="医疗-013：数据不出院，无外部网络出口">● 无外网出口</span>
+    <div class="who">
+      <label for="userSelect">当前操作者</label>
+      <select id="userSelect"></select>
+      <button id="loginBtn" class="btn btn-primary btn-sm">进入工作台</button>
+    </div>
+  </div>
+</header>
+
+<div class="layout">
+  <nav class="sidenav" id="sidenav"></nav>
+  <main class="content">
+    <div class="kpi-strip" id="kpiStrip"></div>
+    <section id="panel-schedule" class="panel"></section>
+    <section id="panel-workbench" class="panel"></section>
+    <section id="panel-tickets" class="panel"></section>
+    <section id="panel-templates" class="panel"></section>
+    <section id="panel-audit" class="panel"></section>
+    <section id="panel-ops" class="panel"></section>
+  </main>
+</div>
+
+<footer class="foot">
+  <span>边界：只做「安排 + 记录辅助 + 红旗升级」，不诊断、不调药、不开方；所有对外记录须护士签名。</span>
+  <span class="mono">FDE-MVP v0.1</span>
+</footer>
+
+<div id="toast" class="toast" hidden></div>
+<script src="/app.js"></script>
+</body>
+</html>
